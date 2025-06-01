@@ -110,40 +110,33 @@ for kpi in tqdm(kpi_cols, desc='KPI'):
         plt.savefig(os.path.join(output_dir, f'scatter_{safe_kpi}_lag{t}.png'), dpi=150)
         plt.close()
 
-# 7. 最良lag_tのp値が0.05以下のKPIについて、PBR・KPI（遅延前）・KPI（遅延後）の折れ線グラフを出力
+# 7. 最良lag_tのp値が0.05以下のKPIについて、PBR・KPI（全ての遅延t年分）を折れ線グラフで出力
 for _, row in tqdm(best_df[best_df['p_value'] < 0.05].iterrows(), total=best_df[best_df['p_value'] < 0.05].shape[0], desc='Line plots'):
     kpi = row['KPI']
     lag_t = int(row['lag_t'])
-    # 年度リスト
     years = df.index.values
-    # 遅延前KPI
-    kpi_before = df[kpi]
-    # 遅延後KPI
-    kpi_after = df[kpi].shift(lag_t)
-    # PBR
     pbr = df['PBR']
-    # プロット（PBRとKPIでy軸を分ける）
-    fig, ax1 = plt.subplots(figsize=(10, 6))
+
+    # 各lagごとにPBRとKPI(lag_t)を1枚の画像にして保存
+    colors = plt.cm.viridis(np.linspace(0, 1, 21))
     color_pbr = 'tab:blue'
-    ax1.set_xlabel('年度')
-    ax1.set_ylabel('PBR', color=color_pbr)
-    l1, = ax1.plot(years, pbr, label='PBR', marker='^', color=color_pbr)
-    ax1.tick_params(axis='y', labelcolor=color_pbr)
-    ax1.xaxis.set_major_locator(plt.MaxNLocator(integer=True))  # 年度を整数表示
-
-    ax2 = ax1.twinx()
-    color_kpi = 'tab:orange'
-    ax2.set_ylabel(f'{kpi}', color=color_kpi)
-    l2, = ax2.plot(years, kpi_before, label=f'{kpi}(遅延前)', marker='o', color='tab:orange', alpha=0.7)
-    l3, = ax2.plot(years, kpi_after, label=f'{kpi}(lag_t={lag_t})', marker='o', color='tab:green', alpha=0.7)
-    ax2.tick_params(axis='y', labelcolor=color_kpi)
-
-    plt.title(f'{kpi} (lag_t={lag_t}) のPBR・KPI推移')
-    fig.tight_layout()
-    # 凡例を1つのboxで表示
-    lines = [l1, l2, l3]
-    labels = [line.get_label() for line in lines]
-    ax1.legend(lines, labels, loc='upper left', bbox_to_anchor=(0, 1))
     safe_kpi = kpi.replace('/', '_').replace('（', '_').replace('）', '_').replace('%', 'pct').replace(' ', '_')
-    plt.savefig(os.path.join(output_dir, f'line_{safe_kpi}_lag{lag_t}.png'), dpi=150)
-    plt.close()
+    for t in range(0, 21):
+        fig, ax1 = plt.subplots(figsize=(12, 7))
+        ax1.set_xlabel('年度')
+        ax1.set_ylabel('PBR', color=color_pbr)
+        l1, = ax1.plot(years, pbr, label='PBR', marker='^', color=color_pbr)
+        ax1.tick_params(axis='y', labelcolor=color_pbr)
+        ax1.xaxis.set_major_locator(plt.MaxNLocator(integer=True))
+
+        ax2 = ax1.twinx()
+        kpi_shifted = df[kpi].shift(t)
+        ax2.set_ylabel(f'{kpi}(lag_t={t})', color=colors[t])
+        l2, = ax2.plot(years, kpi_shifted, label=f'{kpi}(lag_t={t})', marker='o', color=colors[t], alpha=0.8, linewidth=2)
+        ax2.tick_params(axis='y', labelcolor=colors[t])
+
+        plt.title(f'{kpi} (lag_t={t}) とPBRの推移')
+        fig.tight_layout()
+        ax1.legend([l1, l2], ['PBR', f'{kpi}(lag_t={t})'], loc='upper left', bbox_to_anchor=(0, 1))
+        plt.savefig(os.path.join(output_dir, f'line_{safe_kpi}_lag{t}.png'), dpi=150)
+        plt.close()
