@@ -8,10 +8,10 @@ matplotlib.rcParams['font.family'] = 'Meiryo'
 matplotlib.rcParams['axes.unicode_minus'] = False
 
 # ダミーデータの読み込み
-df = pd.read_csv('dummy_esg_data.csv', encoding='utf-8')
+df = pd.read_csv('dummy_data.csv', encoding='utf-8')
 
 # KPIごとに分布を描画
-kpis = df['KPI名'].unique()
+kpis = [col for col in df.columns if col != '年度']
 n_kpi = len(kpis)
 cols = 3
 rows = (n_kpi + cols - 1) // cols
@@ -19,7 +19,7 @@ rows = (n_kpi + cols - 1) // cols
 plt.figure(figsize=(cols*6, rows*4))
 for i, kpi in enumerate(kpis, 1):
     plt.subplot(rows, cols, i)
-    sns.histplot(df[df['KPI名'] == kpi]['値'], bins=15, kde=True)
+    sns.histplot(df[kpi].dropna(), bins=15, kde=True)
     plt.title(kpi)
     plt.xlabel('値')
     plt.ylabel('件数')
